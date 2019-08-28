@@ -1,0 +1,8 @@
+{
+    "name": "com.yj.easyiap",
+    "displayName": "EasyIap",
+    "version": "1.0.0",
+    "unity": "2018.3",
+    "description": "简单的IAP封装",
+    "keywords": ["purchase", "iap"]
+}
