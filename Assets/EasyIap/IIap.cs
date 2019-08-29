@@ -8,7 +8,7 @@ namespace EasyIap
 {
     public interface IIap
     {
-//        event Action<string> onApprovedDeferPurchase;
+        event Action<string> onPendingPurchase;
         bool isReady { get; }
         IReadOnlyList<Product> products { get; }
         UniTask<string> InitAsync(params ProductDefine[] productDefines);
@@ -22,11 +22,5 @@ namespace EasyIap
         /// <param name="id"></param>
         /// <returns></returns>
         bool HasReceipt(string id);
-
-        /// <summary>
-        /// 获取那些扣了钱但没有给与相应奖励的product id
-        /// </summary>
-        /// <returns></returns>
-        UniTask<IReadOnlyCollection<string>> GetPendingPurchaseAsync(CancellationToken cancellationToken = default);
     }
 }

@@ -21,8 +21,7 @@ public class IapPanel : MonoBehaviour
         _restoreBtn.onClick.AddListener(OnRestoreBtnClick);
         
         _iap = new InAppPurchasing();
-//        _iap.onApprovedDeferPurchase += OnDeferredPurchase;        
-        ProcessPendingProducts();
+        _iap.onPendingPurchase += OnPendingPurchase;
         
         string initResult = await _iap.InitAsync(_productDefineProvider.productDefines);
         _title.text = string.IsNullOrEmpty(initResult) ? "Init success!" : initResult;
@@ -36,10 +35,10 @@ public class IapPanel : MonoBehaviour
         InitProducts(_iap.products);
     }
 
-//    void OnDeferredPurchase(string id)
-//    {
-//        Debug.Log($"Approve defer purchase: {id}-----");
-//    }
+    void OnPendingPurchase(string id)
+    {
+        Debug.Log($"Process pending product {id}-----");    
+    }
 
     async void OnRestoreBtnClick()
     {
@@ -88,19 +87,5 @@ public class IapPanel : MonoBehaviour
         }
         
         InitProducts(_iap.products);
-    }
-
-    async void ProcessPendingProducts()
-    {
-        var ids = await _iap.GetPendingPurchaseAsync();
-        if (ids == null)
-        {
-            return;
-        }
-        
-        foreach (string id in ids)
-        {
-            Debug.Log($"Process pending product {id}-----");    
-        }
     }
 }
