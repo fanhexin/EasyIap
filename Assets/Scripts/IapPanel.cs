@@ -37,7 +37,7 @@ public class IapPanel : MonoBehaviour
 
     void OnPendingPurchase(string id)
     {
-        Debug.Log($"Process pending product {id}-----");    
+        _title.text = $"Process pending product {id}!";
     }
 
     async void OnRestoreBtnClick()

@@ -21,13 +21,22 @@ namespace DataSheet
                 if (_productDefines == null)
                 {
                     var iaps = JsonConvert.DeserializeObject<Dictionary<string, Iap>>(_iapJson.text);
-                    _productDefines = iaps.Select(x => new ProductDefine($"{Application.identifier}.{x.Value.ios}",
+                    _productDefines = iaps.Select(x => new ProductDefine(GetIapId(x),
                         x.Value.if_one_time ? ProductType.NonConsumable : ProductType.Consumable))
                         .ToArray();
                 }
 
                 return _productDefines;
             }
+        }
+
+        string GetIapId(KeyValuePair<string, Iap> iapItem)
+        {
+#if UNITY_IOS
+            return $"{Application.identifier}.{iapItem.Value.ios}";
+#elif UNITY_ANDROID
+            return $"{Application.identifier}.{iapItem.Key}";
+#endif
         }
     }
 }
