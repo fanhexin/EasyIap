@@ -11,23 +11,17 @@ namespace EasyIap
     public class InAppPurchasing : IStoreListener, IIap
     {
         const string PENDING_PURCHASE_KEY = "pending_purchase";
-//        const string DEFERRED_PURCHASE_KEY = "deferred_purchase";
-        
-//        public event Action<string> onApprovedDeferPurchase;
         
         IStoreController _storeController;
         IExtensionProvider _extensionProvider;
 
         UniTaskCompletionSource<string> _initTcs;
-        UniTaskCompletionSource<IReadOnlyCollection<string>> _pendingPurchaseTcs;
 
         readonly Lazy<Dictionary<string, UniTaskCompletionSource<string>>> _buyTasks =
             new Lazy<Dictionary<string, UniTaskCompletionSource<string>>>(() =>
                 new Dictionary<string, UniTaskCompletionSource<string>>());
 
-        string[] _pendingIds;
-        List<string> _processPendingIds;
-
+        public event Action<string> onPendingPurchase;
         public bool isReady => _storeController != null && _extensionProvider != null;
         public IReadOnlyList<Product> products
         {
@@ -72,7 +66,9 @@ namespace EasyIap
             cancellationToken.Register(() => buyTcs.TrySetCanceled());
             _buyTasks.Value[id] = buyTcs;
             _storeController.InitiatePurchase(product);
-            UpdatePendingPurchase();
+            
+            PlayerPrefs.SetString(PENDING_PURCHASE_KEY, id);
+            PlayerPrefs.Save();
             return await buyTcs.Task;
         }
 
@@ -102,25 +98,6 @@ namespace EasyIap
             return products.Any(p => p.definition.id == id && p.hasReceipt);
         }
 
-        public async UniTask<IReadOnlyCollection<string>> GetPendingPurchaseAsync(CancellationToken cancellationToken = default)
-        {
-            string value = PlayerPrefs.GetString(PENDING_PURCHASE_KEY);
-            if (string.IsNullOrEmpty(value))
-            {
-                return null;
-            }
-            
-            _pendingIds = value.Split(',');
-            if (_pendingIds == null || _pendingIds.Length == 0)
-            {
-                return null;
-            }
-            
-            _pendingPurchaseTcs = new UniTaskCompletionSource<IReadOnlyCollection<string>>();
-            cancellationToken.Register(() => _pendingPurchaseTcs.TrySetCanceled());
-            return await _pendingPurchaseTcs.Task;
-        }
-
         void CheckReady()
         {
             if (isReady)
@@ -141,43 +118,15 @@ namespace EasyIap
         {
             _storeController = controller;
             _extensionProvider = extensions;
-            
-//#if UNITY_IOS
-//            var apple = extensions.GetExtension<IAppleExtensions>();
-//            apple.simulateAskToBuy = true;
-//            apple.RegisterPurchaseDeferredListener(OnDeferred);
-//#endif
-            
+
             _initTcs?.TrySetResult(null);
             _initTcs = null;
         }
-
-//        void OnDeferred(Product product)
-//        {
-//            Debug.Log($"{nameof(OnDeferred)} {product.definition.id}-----");
-//            
-//            string id = product.definition.id;
-//            if (!_buyTasks.Value.TryGetValue(id, out var tcs))
-//            {
-//                return;
-//            }
-//
-//            tcs.TrySetResult("Deferred!");
-//            _buyTasks.Value.Remove(product.definition.id);
-//            UpdatePendingPurchase();
-//            
-//            PlayerPrefs.SetString(DEFERRED_PURCHASE_KEY, id);
-//            PlayerPrefs.Save();
-//        }
 
         PurchaseProcessingResult IStoreListener.ProcessPurchase(PurchaseEventArgs e)
         {
             string id = e.purchasedProduct.definition.id;
 //            Debug.Log($"ProcessPurchase id {id}-----");
-//            if (ProcessDeferredPurchase(id))
-//            {
-//                return PurchaseProcessingResult.Complete;
-//            }
             
             if (!ProcessPendingPurchase(id))
             {
@@ -186,54 +135,25 @@ namespace EasyIap
             return PurchaseResponse(id)?PurchaseProcessingResult.Complete:PurchaseProcessingResult.Pending;
         }
 
-//        bool ProcessDeferredPurchase(string id)
-//        {
-//            string curDeferredId = PlayerPrefs.GetString(DEFERRED_PURCHASE_KEY, string.Empty);
-//            if (string.IsNullOrEmpty(curDeferredId) || curDeferredId == id)
-//            {
-//                return false;
-//            }
-//            
-//            onApprovedDeferPurchase?.Invoke(id);
-//            
-//            PlayerPrefs.DeleteKey(DEFERRED_PURCHASE_KEY);
-//            PlayerPrefs.Save();
-//            return true;
-//        }
-
         bool ProcessPendingPurchase(string id)
         {
-            if (_pendingPurchaseTcs == null) return true;
-            
-            if (_processPendingIds == null)
+            string pendingId = PlayerPrefs.GetString(PENDING_PURCHASE_KEY, string.Empty);
+            if (pendingId != id)
             {
-                _processPendingIds = new List<string>();
+                return true;
             }
 
-//            Debug.Log($"{nameof(ProcessPendingPurchase)} add id {id} -----");
-            
-            _processPendingIds.Add(id);
-
-            if (_processPendingIds.Count != _pendingIds.Length ||
-                _processPendingIds.Intersect(_pendingIds).Count() != _pendingIds.Length) return true;
-            
-//            Debug.Log($"{nameof(ProcessPendingPurchase)} try set result-----");
-            
-            bool ret = _pendingPurchaseTcs.TrySetResult(_pendingIds);
-            _pendingPurchaseTcs = null;
-            if (!ret)
+            // 如果不注册回调对pending purchase进行处理，则让purchase继续处于pending状态
+            if (onPendingPurchase == null)
             {
-                return ret;
+                return false;
             }
 
-            _processPendingIds.Clear();
-            _processPendingIds = null;
-            
-            _pendingIds = null;
+            onPendingPurchase(id);
 
             PlayerPrefs.DeleteKey(PENDING_PURCHASE_KEY);
             PlayerPrefs.Save();
-            return ret;
+            return true;
         }
 
         void IStoreListener.OnPurchaseFailed(Product product, PurchaseFailureReason failureReason)
@@ -253,15 +173,14 @@ namespace EasyIap
             }
             
             _buyTasks.Value.Remove(id);
-            UpdatePendingPurchase();
+            
+            string pendingId = PlayerPrefs.GetString(PENDING_PURCHASE_KEY, string.Empty);
+            if (pendingId == id)
+            {
+                PlayerPrefs.DeleteKey(PENDING_PURCHASE_KEY);
+                PlayerPrefs.Save();
+            }
             return ret;
-        }
-
-        void UpdatePendingPurchase()
-        {
-            string ids = string.Join(",", _buyTasks.Value.Keys);
-            PlayerPrefs.SetString(PENDING_PURCHASE_KEY, ids);    
-            PlayerPrefs.Save();
         }
     }
 }
