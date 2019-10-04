@@ -11,8 +11,8 @@
 
 ```json
 {
-    "com.yj.unitask": "http://192.168.0.254:8081/fandongdong/UniTask.git#upm",
-    "com.yj.easyiap": "http://192.168.0.254:8081/common/easyiap.git#upm"
+    "com.github.unitask": "https://github.com/fanhexin/UniTask.git#upm",
+    "com.github.fanhexin.easyiap": "https://github.com/fanhexin/EasyIap.git#upm"
 }
 ```
 
