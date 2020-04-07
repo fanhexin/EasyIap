@@ -9,6 +9,7 @@ namespace EasyIap
     public interface IIap
     {
         event Action<string> onPendingPurchase;
+        event Action<Product> onPurchaseDeferred;
         bool isReady { get; }
         IReadOnlyList<Product> products { get; }
         UniTask<string> InitAsync(params ProductDefine[] productDefines);
@@ -22,5 +23,12 @@ namespace EasyIap
         /// <param name="id"></param>
         /// <returns></returns>
         bool HasReceipt(string id);
+        
+        /// <summary>
+        /// 获取订阅商品
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        SubscriptionManager GetSubscription(string id);
     }
 }
