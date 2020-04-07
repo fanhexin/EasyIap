@@ -22,6 +22,9 @@ namespace EasyIap
                 new Dictionary<string, UniTaskCompletionSource<string>>());
 
         public event Action<string> onPendingPurchase;
+        // Apple's Ask to Buy feature. On non-Apple platforms this will have no effect; OnDeferred will never be called.
+        public event Action<Product> onPurchaseDeferred;
+
         public bool isReady => _storeController != null && _extensionProvider != null;
         public IReadOnlyList<Product> products
         {
@@ -98,6 +101,26 @@ namespace EasyIap
             return products.Any(p => p.definition.id == id && p.hasReceipt);
         }
 
+        public SubscriptionManager GetSubscription(string id)
+        {
+            Product p = GetProduct(id);
+            if (p == null || p.definition.type != ProductType.Subscription)
+            {
+                return null;
+            }
+
+#if UNITY_IOS
+            var infoDict = _extensionProvider.GetExtension<IAppleExtensions>()
+                .GetIntroductoryPriceDictionary();
+
+#elif UNITY_ANDROID
+            var infoDict = _extensionProvider.GetExtension<IGooglePlayStoreExtensions>()
+                .GetProductJSONDictionary();
+#endif
+            infoDict.TryGetValue(id, out string introJson);
+            return new SubscriptionManager(p, introJson);
+        }
+
         void CheckReady()
         {
             if (isReady)
@@ -118,6 +141,10 @@ namespace EasyIap
         {
             _storeController = controller;
             _extensionProvider = extensions;
+#if UNITY_IOS
+            var appleExtensions = extensions.GetExtension<IAppleExtensions>();
+            appleExtensions.RegisterPurchaseDeferredListener(p => onPurchaseDeferred?.Invoke(p));
+#endif
 
             _initTcs?.TrySetResult(null);
             _initTcs = null;
