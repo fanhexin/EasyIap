@@ -11,7 +11,6 @@
 
 ```json
 {
-    "com.github.unitask": "https://github.com/fanhexin/UniTask.git#upm",
     "com.github.fanhexin.easyiap": "https://github.com/fanhexin/EasyIap.git#upm"
 }
 ```
@@ -29,6 +28,11 @@ iap.onPendingPurchase += id =>
     // 未完成内购处理代码
 };
 
+iap.onPurchaseDeferred += product =>
+{
+    // 处理ios下ask to buy    
+};
+
 // 在使用其他方法前需要先初始化
 // ProductDefine 存储id和ProductType，组成数组初始化多个内购商品
 // 初始化成功 result 为 null，否则为具体错误原因
@@ -42,6 +46,9 @@ bool result = await iap.RestoreAsync();
 
 // 通过id查询具体的product
 Product product = iap.GetProduct("product id");
+
+// 通过id获取订阅Manager类
+SubscriptionManager subscriptionMgr = GetSubscription("product id");
 
 // 根据id判断是否有收据，常用来查询去广告等NonComsumable类型内购是否已购买
 bool b = iap.HasReceipt("product id");
