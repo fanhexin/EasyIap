@@ -154,33 +154,29 @@ namespace EasyIap
         {
             string id = e.purchasedProduct.definition.id;
 //            Debug.Log($"ProcessPurchase id {id}-----");
-            
-            if (!ProcessPendingPurchase(id))
-            {
-                return PurchaseProcessingResult.Pending;
-            }
-            return PurchaseResponse(id)?PurchaseProcessingResult.Complete:PurchaseProcessingResult.Pending;
+            return _buyTasks.Value.ContainsKey(id) ? PurchaseResponse(id) : ProcessPendingPurchase(id);
         }
 
-        bool ProcessPendingPurchase(string id)
+        PurchaseProcessingResult ProcessPendingPurchase(string id)
         {
             string pendingId = PlayerPrefs.GetString(PENDING_PURCHASE_KEY, string.Empty);
             if (pendingId != id)
             {
-                return true;
+                // 正常不应该出现这种状况
+                return PurchaseProcessingResult.Pending;
             }
 
             // 如果不注册回调对pending purchase进行处理，则让purchase继续处于pending状态
             if (onPendingPurchase == null)
             {
-                return false;
+                return PurchaseProcessingResult.Pending;
             }
 
             onPendingPurchase(id);
 
             PlayerPrefs.DeleteKey(PENDING_PURCHASE_KEY);
             PlayerPrefs.Save();
-            return true;
+            return PurchaseProcessingResult.Complete;
         }
 
         void IStoreListener.OnPurchaseFailed(Product product, PurchaseFailureReason failureReason)
@@ -189,14 +185,15 @@ namespace EasyIap
             PurchaseResponse(product.definition.id, failureReason.ToString());
         }
         
-        bool PurchaseResponse(string id, string errorCode = null)
+        PurchaseProcessingResult PurchaseResponse(string id, string errorCode = null)
         {
-            if (!_buyTasks.Value.TryGetValue(id, out UniTaskCompletionSource<string> tcs)) return true;
+            if (!_buyTasks.Value.TryGetValue(id, out UniTaskCompletionSource<string> tcs)) 
+                return PurchaseProcessingResult.Complete;
             
             bool ret = tcs.TrySetResult(errorCode);
             if (!ret)
             {
-                return ret;
+                return PurchaseProcessingResult.Pending;
             }
             
             _buyTasks.Value.Remove(id);
@@ -207,7 +204,8 @@ namespace EasyIap
                 PlayerPrefs.DeleteKey(PENDING_PURCHASE_KEY);
                 PlayerPrefs.Save();
             }
-            return ret;
+
+            return PurchaseProcessingResult.Complete;
         }
     }
 }
