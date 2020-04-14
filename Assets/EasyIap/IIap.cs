@@ -30,5 +30,6 @@ namespace EasyIap
         /// <param name="id"></param>
         /// <returns></returns>
         SubscriptionManager GetSubscription(string id);
+        void ConfirmPendingPurchase(Product product);
     }
 }
