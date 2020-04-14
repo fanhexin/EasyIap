@@ -10,8 +10,6 @@ namespace EasyIap
 {
     public class InAppPurchasing : IStoreListener, IIap
     {
-        const string PENDING_PURCHASE_KEY = "pending_purchase";
-        
         IStoreController _storeController;
         IExtensionProvider _extensionProvider;
 
@@ -43,7 +41,6 @@ namespace EasyIap
             }
             
             var builder = ConfigurationBuilder.Instance(StandardPurchasingModule.Instance());
-//            Debug.Log($"can make payments: {builder.Configure<IAppleConfiguration>().canMakePayments}-----");
             
             foreach (ProductDefine define in productDefines)
             {
@@ -69,9 +66,6 @@ namespace EasyIap
             cancellationToken.Register(() => buyTcs.TrySetCanceled());
             _buyTasks.Value[id] = buyTcs;
             _storeController.InitiatePurchase(product);
-            
-            PlayerPrefs.SetString(PENDING_PURCHASE_KEY, id);
-            PlayerPrefs.Save();
             return await buyTcs.Task;
         }
 
@@ -121,6 +115,11 @@ namespace EasyIap
             return new SubscriptionManager(p, introJson);
         }
 
+        public void ConfirmPendingPurchase(Product product)
+        {
+            _storeController.ConfirmPendingPurchase(product);
+        }
+
         void CheckReady()
         {
             if (isReady)
@@ -153,19 +152,11 @@ namespace EasyIap
         PurchaseProcessingResult IStoreListener.ProcessPurchase(PurchaseEventArgs e)
         {
             string id = e.purchasedProduct.definition.id;
-//            Debug.Log($"ProcessPurchase id {id}-----");
             return _buyTasks.Value.ContainsKey(id) ? PurchaseResponse(id) : ProcessPendingPurchase(id);
         }
 
         PurchaseProcessingResult ProcessPendingPurchase(string id)
         {
-            string pendingId = PlayerPrefs.GetString(PENDING_PURCHASE_KEY, string.Empty);
-            if (pendingId != id)
-            {
-                // 正常不应该出现这种状况
-                return PurchaseProcessingResult.Pending;
-            }
-
             // 如果不注册回调对pending purchase进行处理，则让purchase继续处于pending状态
             if (onPendingPurchase == null)
             {
@@ -173,15 +164,11 @@ namespace EasyIap
             }
 
             onPendingPurchase(id);
-
-            PlayerPrefs.DeleteKey(PENDING_PURCHASE_KEY);
-            PlayerPrefs.Save();
             return PurchaseProcessingResult.Complete;
         }
 
         void IStoreListener.OnPurchaseFailed(Product product, PurchaseFailureReason failureReason)
         {
-//            Debug.Log($"OnPurchaseFailed id {product.definition.id}-----");
             PurchaseResponse(product.definition.id, failureReason.ToString());
         }
         
@@ -197,13 +184,6 @@ namespace EasyIap
             }
             
             _buyTasks.Value.Remove(id);
-            
-            string pendingId = PlayerPrefs.GetString(PENDING_PURCHASE_KEY, string.Empty);
-            if (pendingId == id)
-            {
-                PlayerPrefs.DeleteKey(PENDING_PURCHASE_KEY);
-                PlayerPrefs.Save();
-            }
 
             return PurchaseProcessingResult.Complete;
         }
