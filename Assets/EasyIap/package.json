@@ -6,6 +6,7 @@
     "description": "简单的IAP封装",
     "keywords": ["purchase", "iap"],
     "dependencies": {
+        "com.unity.purchasing": "2.0.6",
         "com.cysharp.unitask" : "1.2.0"
     }
 }

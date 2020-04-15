@@ -2,8 +2,7 @@
 
 ## 安装
 
-首先确保`PackageManager`中已安装`InAppPurchasing` 最低`2.0.6`版本的包，
-然后在`Unity Service`窗口中开启`Analytics`和`In-App Purchasing`两个服务。
+在`Unity Service`窗口中开启`Analytics`和`In-App Purchasing`两个服务。
 在开启`In-App Purchasing`服务时，需要点界面上的`Import`按钮，之后会自动导入几个`UnityPackage`
 （*但在2018.4.4版本中，点`Import`按钮会报错，需要手动再导入`Plugin`目录下导入进来的几个`UnityPackage`*）。
 
@@ -61,6 +60,9 @@ foreach (var p in iap.products)
 {
     // do something
 }
+
+// 手动将Pending状态的product设置为complete状态
+ConfirmPendingPurchase(product);
 ```
 
 `onPendingPurchase` 事件在发生未完成的内购时(如点击购买并确认后应用崩溃或者玩家手动杀死应用)，
