@@ -1,12 +1,12 @@
 {
-    "name": "com.github.fanhexin.easyiap",
+    "name": "com.hpcfun.easyiap",
     "displayName": "EasyIap",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "unity": "2018.3",
     "description": "简单的IAP封装",
     "keywords": ["purchase", "iap"],
     "dependencies": {
-        "com.unity.purchasing": "2.0.6",
+        "com.unity.purchasing": "2.1.1",
         "com.cysharp.unitask" : "1.2.0"
     }
 }

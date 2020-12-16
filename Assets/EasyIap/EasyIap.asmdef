@@ -1,7 +1,8 @@
 {
     "name": "EasyIap",
     "references": [
-        "UniRx.Async"
+        "UniRx.Async",
+        "UnityEngine.Purchasing"
     ],
     "optionalUnityReferences": [],
     "includePlatforms": [],
