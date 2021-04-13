@@ -2,8 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using UniRx.Async;
-using UnityEngine;
+using Cysharp.Threading.Tasks;
 using UnityEngine.Purchasing;
 
 namespace EasyIap
